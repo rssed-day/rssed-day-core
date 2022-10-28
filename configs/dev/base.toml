@@ -1,0 +1,10 @@
+[global]
+    server_mode = "debug"
+
+[http]
+    addr = ":51401" # 监听地址
+    read_timeout = 10 # 读取超时时长（以秒作为单位）
+    write_timeout = 10 # 写入超时时长（以秒作为单位）
+
+[grpc]
+    addr = ":51402" # 监听地址

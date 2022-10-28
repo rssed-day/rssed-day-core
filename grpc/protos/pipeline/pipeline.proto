@@ -1,0 +1,58 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/any.proto";
+
+package pipeline;
+
+option go_package = "rssed-day-core/grpc/protos/pipeline";
+
+service PipelineService{
+  rpc PipelineAction(PipelineActionModel) returns (google.protobuf.Empty) {};
+}
+
+message PipelineActionModel{
+  string Action = 1 [json_name="action"];
+  Config Config = 2 [json_name="config"];
+}
+
+message Config {
+  Preference Preference = 1 [json_name="preference"];
+  repeated InputConfig Inputs = 2 [json_name="inputs"];
+  repeated ProcessorConfig Processors = 3 [json_name="processors"];
+  repeated AggregatorConfig Aggregators = 4 [json_name="aggregators"];
+  repeated OutputConfig Outputs = 5 [json_name="outputs"];
+}
+
+message Preference {
+  bool Debug = 1 [json_name="debug"];
+}
+
+message InputConfig {
+  string Uuid = 1 [json_name="uuid"];
+  string Name = 2 [json_name="name"];
+  string Cron = 3 [json_name="cron"];
+  map<string, google.protobuf.Any> Args = 4 [json_name="args"];
+}
+
+message ProcessorConfig {
+  string Uuid = 1 [json_name="uuid"];
+  string Name = 2 [json_name="name"];
+  int32  Order = 3 [json_name="order"];
+  map<string, google.protobuf.Any> Args = 4 [json_name="args"];
+}
+
+message AggregatorConfig {
+  string Uuid = 1 [json_name="uuid"];
+  string Name = 2 [json_name="name"];
+  map<string, google.protobuf.Any> Args = 3 [json_name="args"];
+}
+
+message OutputConfig {
+  string Uuid = 1 [json_name="uuid"];
+  string Name = 2 [json_name="name"];
+  int32  Interval = 3 [json_name="interval"];
+  int32  BufferLimit = 4 [json_name="buffer_limit"];
+  int32  BufferBatch = 5 [json_name="buffer_batch"];
+  map<string, google.protobuf.Any> Args = 6 [json_name="args"];
+}

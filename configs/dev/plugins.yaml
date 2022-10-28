@@ -1,0 +1,6 @@
+inputs:
+  - name: file
+    args:
+      path: assets/helloworld.json
+outputs:
+  - name: cmd
