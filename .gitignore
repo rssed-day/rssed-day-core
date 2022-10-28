@@ -1,0 +1,5 @@
+*.idea
+vendor
+assets
+rsseday.exe
+rsseday_*.exe
