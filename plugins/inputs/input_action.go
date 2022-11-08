@@ -5,13 +5,13 @@ import "github.com/rssed-day/rssed-day-core/models"
 // InputActions -
 //
 // ┌───────┐
-// │ InputPlugin │───┐
+// │ Input │───┐
 // └───────┘   │
 // ┌───────┐   │     ______
-// │ InputPlugin │───┼──▶ ()_____)
+// │ Input │───┼──▶ ()_____)
 // └───────┘   │
 // ┌───────┐   │
-// │ InputPlugin │───┘
+// │ Input │───┘
 // └───────┘
 type InputActions struct {
 	Dst    chan<- models.Object

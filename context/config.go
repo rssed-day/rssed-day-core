@@ -19,11 +19,12 @@ type Preference struct {
 
 // Config -
 type Config struct {
-	Preference        *Preference                    `json:"preference" yaml:"preference"`
-	InputConfigs      []inputs.InputConfig           `json:"inputs" yaml:"inputs"`
-	ProcessorConfigs  []processors.ProcessorConfig   `json:"processors" yaml:"processors"`
-	AggregatorConfigs []aggregators.AggregatorConfig `json:"aggregators" yaml:"aggregators"`
-	OutputConfigs     []outputs.OutputConfig         `json:"outputs" yaml:"outputs"`
+	Preference           *Preference                    `json:"preference" yaml:"preference"`
+	InputConfigs         []inputs.InputConfig           `json:"inputs" yaml:"inputs"`
+	PreProcessorConfigs  []processors.ProcessorConfig   `json:"pre-processors" yaml:"pre-processors"`
+	AggregatorConfigs    []aggregators.AggregatorConfig `json:"aggregators" yaml:"aggregators"`
+	PostProcessorConfigs []processors.ProcessorConfig   `json:"post-processors" yaml:"post-processors"`
+	OutputConfigs        []outputs.OutputConfig         `json:"outputs" yaml:"outputs"`
 }
 
 // ConfigFactory -

@@ -5,13 +5,13 @@ import "github.com/rssed-day/rssed-day-core/models"
 // OutputActions -
 //
 //                            ┌────────┐
-//                       ┌──▶ │ OutputPlugin │
+//                       ┌──▶ │ Output │
 //                       │    └────────┘
 //  ______     ┌─────┐   │    ┌────────┐
-// ()_____)──▶ │ Buf │───┼──▶ │ OutputPlugin │
+// ()_____)──▶ │ Buf │───┼──▶ │ Output │
 //             └─────┘   │    └────────┘
 //                       │    ┌────────┐
-//                       └──▶ │ OutputPlugin │
+//                       └──▶ │ Output │
 //                            └────────┘
 type OutputActions struct {
 	Src     <-chan models.Object

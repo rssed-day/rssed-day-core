@@ -13,11 +13,12 @@ import (
 
 // Context -
 type Context struct {
-	Config            *Config
-	InputRunners      inputs.InputRunners
-	ProcessorRunners  processors.ProcessorRunners
-	AggregatorRunners aggregators.AggregatorRunners
-	OutputRunners     outputs.OutputRunners
+	Config               *Config
+	InputRunners         inputs.InputRunners
+	PreProcessorRunners  processors.ProcessorRunners
+	AggregatorRunners    aggregators.AggregatorRunners
+	PostProcessorRunners processors.ProcessorRunners
+	OutputRunners        outputs.OutputRunners
 }
 
 // NewContext -
@@ -28,10 +29,13 @@ func NewContext(config *Config) (*Context, error) {
 	if err := context.setInputRunners(config.InputConfigs); err != nil {
 		return nil, err
 	}
-	if err := context.setProcessorRunners(config.ProcessorConfigs); err != nil {
+	if err := context.setPreProcessorRunners(config.PreProcessorConfigs); err != nil {
 		return nil, err
 	}
 	if err := context.setAggregatorRunners(config.AggregatorConfigs); err != nil {
+		return nil, err
+	}
+	if err := context.setPostProcessorRunners(config.PostProcessorConfigs); err != nil {
 		return nil, err
 	}
 	if err := context.setOutputRunners(config.OutputConfigs); err != nil {
@@ -67,8 +71,8 @@ func (c *Context) setInputRunners(configs []inputs.InputConfig) error {
 	return nil
 }
 
-// setProcessorRunners -
-func (c *Context) setProcessorRunners(configs []processors.ProcessorConfig) error {
+// setPreProcessorRunners -
+func (c *Context) setPreProcessorRunners(configs []processors.ProcessorConfig) error {
 	for _, config := range configs {
 		factory, ok := processors.ProcessorFactories[config.Name]
 		if !ok {
@@ -93,7 +97,7 @@ func (c *Context) setProcessorRunners(configs []processors.ProcessorConfig) erro
 		if err != nil {
 			return err
 		}
-		c.ProcessorRunners = append(c.ProcessorRunners, runner)
+		c.PreProcessorRunners = append(c.PreProcessorRunners, runner)
 	}
 	return nil
 }
@@ -125,6 +129,37 @@ func (c *Context) setAggregatorRunners(configs []aggregators.AggregatorConfig) e
 			return err
 		}
 		c.AggregatorRunners = append(c.AggregatorRunners, runner)
+	}
+	return nil
+}
+
+// setPostProcessorRunners -
+func (c *Context) setPostProcessorRunners(configs []processors.ProcessorConfig) error {
+	for _, config := range configs {
+		factory, ok := processors.ProcessorFactories[config.Name]
+		if !ok {
+			return fmt.Errorf("no such %s processor plugin", config.Name)
+		}
+		plugin := factory()
+
+		if _, ok := plugin.(parsers.ParserPlugin); ok {
+			// TODO: set parser
+		}
+
+		if _, ok := plugin.(serializers.SerializerPlugin); ok {
+			// TODO: set serializer
+		}
+
+		runner := processors.NewProcessorRunner(plugin, &config)
+		args, err := yaml.Marshal(config.Args)
+		if err != nil {
+			return err
+		}
+		err = yaml.Unmarshal(args, runner.Processor)
+		if err != nil {
+			return err
+		}
+		c.PostProcessorRunners = append(c.PostProcessorRunners, runner)
 	}
 	return nil
 }

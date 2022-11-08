@@ -2,11 +2,21 @@ package processors
 
 import "github.com/rssed-day/rssed-day-core/models"
 
-// ProcessorActions -
+// PreProcessorActions -
 //  ______     ┌───────────┐     ______
-// ()_____)──▶ │ ProcessorPlugin │──▶ ()_____)
+// ()_____)──▶ │ Processor │──▶ ()_____)
 //             └───────────┘
-type ProcessorActions struct {
+type PreProcessorActions struct {
+	Src       <-chan models.Object
+	Dst       chan<- models.Object
+	Processor *ProcessorRunner
+}
+
+// PostProcessorActions -
+//  ______     ┌───────────┐     ______
+// ()_____)──▶ │ Processor │──▶ ()_____)
+//             └───────────┘
+type PostProcessorActions struct {
 	Src       <-chan models.Object
 	Dst       chan<- models.Object
 	Processor *ProcessorRunner

@@ -4,13 +4,13 @@ import "github.com/rssed-day/rssed-day-core/models"
 
 // AggregatorActions -
 //                 ┌────────────┐
-//            ┌──▶ │ AggregatorPlugin │───┐
+//            ┌──▶ │ Aggregator │───┐
 //            │    └────────────┘   │
 //  ______    │    ┌────────────┐   │     ______
-// ()_____)───┼──▶ │ AggregatorPlugin │───┼──▶ ()_____)
+// ()_____)───┼──▶ │ Aggregator │───┼──▶ ()_____)
 //            │    └────────────┘   │
 //            │    ┌────────────┐   │
-//            └──▶ │ AggregatorPlugin │───┘
+//            └──▶ │ Aggregator │───┘
 //                 └────────────┘
 type AggregatorActions struct {
 	Src         <-chan models.Object

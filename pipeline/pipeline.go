@@ -40,6 +40,14 @@ func (p *Pipeline) Pipe(ctx context.Context) error {
 		return err
 	}
 
+	var postProcessorUnits []*processors.PostProcessorActions
+	if len(p.Context.PostProcessorRunners) != 0 {
+		next, postProcessorUnits, err = p.assemblePostProcessors(next, p.Context.PostProcessorRunners)
+		if err != nil {
+			return err
+		}
+	}
+
 	var aggregatorUnit *aggregators.AggregatorActions
 	if len(p.Context.AggregatorRunners) != 0 {
 		next, aggregatorUnit, err = p.assembleAggregators(next, p.Context.AggregatorRunners)
@@ -48,9 +56,9 @@ func (p *Pipeline) Pipe(ctx context.Context) error {
 		}
 	}
 
-	var processorUnits []*processors.ProcessorActions
-	if len(p.Context.ProcessorRunners) != 0 {
-		next, processorUnits, err = p.assembleProcessors(next, p.Context.ProcessorRunners)
+	var preProcessorUnits []*processors.PreProcessorActions
+	if len(p.Context.PreProcessorRunners) != 0 {
+		next, preProcessorUnits, err = p.assemblePreProcessors(next, p.Context.PreProcessorRunners)
 		if err != nil {
 			return err
 		}
@@ -69,6 +77,14 @@ func (p *Pipeline) Pipe(ctx context.Context) error {
 		p.pipeOutputs(ctx, outputUnit)
 	}()
 
+	if postProcessorUnits != nil {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			p.pipePostProcessors(ctx, postProcessorUnits)
+		}()
+	}
+
 	if aggregatorUnit != nil {
 		wg.Add(1)
 		go func() {
@@ -77,11 +93,11 @@ func (p *Pipeline) Pipe(ctx context.Context) error {
 		}()
 	}
 
-	if processorUnits != nil {
+	if preProcessorUnits != nil {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			p.pipeProcessors(ctx, processorUnits)
+			p.pipePreProcessors(ctx, preProcessorUnits)
 		}()
 	}
 
@@ -107,12 +123,17 @@ func (p *Pipeline) constructPlugins() error {
 			return err
 		}
 	}
-	for _, plugin := range p.Context.ProcessorRunners {
+	for _, plugin := range p.Context.PreProcessorRunners {
 		if err := plugin.Init(); err != nil {
 			return err
 		}
 	}
 	for _, plugin := range p.Context.AggregatorRunners {
+		if err := plugin.Init(); err != nil {
+			return err
+		}
+	}
+	for _, plugin := range p.Context.PostProcessorRunners {
 		if err := plugin.Init(); err != nil {
 			return err
 		}
@@ -163,10 +184,10 @@ func (p *Pipeline) pipeInputs(ctx context.Context, unit *inputs.InputActions) {
 	close(unit.Dst)
 }
 
-// assembleProcessors -
-func (p *Pipeline) assembleProcessors(dst chan<- models.Object, processorRunners processors.ProcessorRunners) (
-	chan<- models.Object, []*processors.ProcessorActions, error) {
-	var units []*processors.ProcessorActions
+// assemblePreProcessors -
+func (p *Pipeline) assemblePreProcessors(dst chan<- models.Object, processorRunners processors.ProcessorRunners) (
+	chan<- models.Object, []*processors.PreProcessorActions, error) {
+	var units []*processors.PreProcessorActions
 
 	sort.SliceStable(processorRunners, func(i, j int) bool {
 		return processorRunners[i].Config.Order > processorRunners[j].Config.Order
@@ -176,7 +197,7 @@ func (p *Pipeline) assembleProcessors(dst chan<- models.Object, processorRunners
 	for _, processor := range processorRunners {
 		src = make(chan models.Object, constants.ObjectChannelSize)
 
-		unit := &processors.ProcessorActions{
+		unit := &processors.PreProcessorActions{
 			Src:       src,
 			Dst:       dst,
 			Processor: processor,
@@ -189,12 +210,12 @@ func (p *Pipeline) assembleProcessors(dst chan<- models.Object, processorRunners
 	return src, units, nil
 }
 
-// pipeProcessors -
-func (p *Pipeline) pipeProcessors(ctx context.Context, units []*processors.ProcessorActions) {
+// pipePreProcessors -
+func (p *Pipeline) pipePreProcessors(ctx context.Context, units []*processors.PreProcessorActions) {
 	var wg sync.WaitGroup
 	for _, unit := range units {
 		wg.Add(1)
-		go func(unit *processors.ProcessorActions) {
+		go func(unit *processors.PreProcessorActions) {
 			defer wg.Done()
 
 			act := plugins.NewAction(unit.Processor, unit.Dst)
@@ -251,6 +272,52 @@ func (p *Pipeline) pipeAggregators(ctx context.Context, unit *aggregators.Aggreg
 	wg.Wait()
 
 	close(unit.Dst)
+}
+
+// assemblePostProcessors -
+func (p *Pipeline) assemblePostProcessors(dst chan<- models.Object, processorRunners processors.ProcessorRunners) (
+	chan<- models.Object, []*processors.PostProcessorActions, error) {
+	var units []*processors.PostProcessorActions
+
+	sort.SliceStable(processorRunners, func(i, j int) bool {
+		return processorRunners[i].Config.Order > processorRunners[j].Config.Order
+	})
+
+	var src chan models.Object
+	for _, processor := range processorRunners {
+		src = make(chan models.Object, constants.ObjectChannelSize)
+
+		unit := &processors.PostProcessorActions{
+			Src:       src,
+			Dst:       dst,
+			Processor: processor,
+		}
+		units = append(units, unit)
+
+		dst = src
+	}
+
+	return src, units, nil
+}
+
+// pipePostProcessors -
+func (p *Pipeline) pipePostProcessors(ctx context.Context, units []*processors.PostProcessorActions) {
+	var wg sync.WaitGroup
+	for _, unit := range units {
+		wg.Add(1)
+		go func(unit *processors.PostProcessorActions) {
+			defer wg.Done()
+
+			act := plugins.NewAction(unit.Processor, unit.Dst)
+			for obj := range unit.Src {
+				if err := unit.Processor.Process(obj, act); err != nil {
+					act.AddError(err)
+				}
+			}
+			close(unit.Dst)
+		}(unit)
+	}
+	wg.Wait()
 }
 
 // assembleOutputs -
